@@ -8,6 +8,7 @@
 ## SavedVariablesPerCharacter: MeederSIMCharDB
 ## Category: Combat
 ## X-Wago-ID: L6J9L2Nv
+## X-Curse-Project-ID: 1510202
 
 Locale_enUS.lua
 Locale_deDE.lua
