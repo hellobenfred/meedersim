@@ -7,6 +7,7 @@
 ## SavedVariables: MeederSIMDB
 ## SavedVariablesPerCharacter: MeederSIMCharDB
 ## Category: Combat
+## X-Wago-ID: L6J9L2Nv
 
 Locale_enUS.lua
 Locale_deDE.lua
