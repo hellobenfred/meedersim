@@ -1,0 +1,27 @@
+## Interface: 120001
+## Title: |cff00ccffMeederSIM|r by IT-Meeder.de
+## Notes: Sofortiger Item-Vergleich für Raid & M+ | Crest-Upgrade Check | BiS-Erkennung
+## Author: IT-Meeder.de | Support: Littlepink-Arthas
+## Version: 1.1.1
+## IconTexture: Interface\Icons\INV_Misc_Gear_01
+## SavedVariables: MeederSIMDB
+## SavedVariablesPerCharacter: MeederSIMCharDB
+## Category: Combat
+
+Locale_enUS.lua
+Locale_deDE.lua
+Core.lua
+StatReader.lua
+GearCollector.lua
+Data\StatWeights.lua
+Data\ItemSources.lua
+ItemComparator.lua
+CrestChecker.lua
+BiSDatabase.lua
+TierSetChecker.lua
+EnchantChecker.lua
+TooltipEnhancer.lua
+LootDetector.lua
+ExportString.lua
+MinimapButton.lua
+UI.lua
