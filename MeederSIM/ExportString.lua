@@ -139,3 +139,52 @@ function MeederSIM:ShowExport()
         end
     end)
 end
+
+----------------------------------------------------------------------
+-- Quick Sim: Copy SimC string to clipboard + open Raidbots
+----------------------------------------------------------------------
+function MeederSIM:QuickSim(compareItemLink)
+    local L = self.L
+    local export = self:GenerateExport()
+    if not export then
+        self:Print("Export failed.")
+        return
+    end
+
+    -- If comparing a specific item, add profileset
+    if compareItemLink then
+        local slotId = self:GetSlotForItem(compareItemLink)
+        if slotId then
+            local slotName = self.SLOT_SIMC[slotId]
+            if slotName then
+                local simcLine = self:ItemToSimC(compareItemLink, slotName)
+                if simcLine then
+                    local itemName = GetItemInfo(compareItemLink) or "New Item"
+                    export = export .. "\n\n# MeederSIM Quick Sim Compare"
+                    export = export .. "\nprofileset.\"" .. itemName .. "\"+=" .. simcLine
+                end
+            end
+        end
+    end
+
+    -- Show in export frame so user can copy
+    if not self.exportFrame then
+        self:CreateExportFrame()
+    end
+    self.exportFrame.editBox:SetText(export)
+    self.exportFrame:Show()
+
+    C_Timer.After(0.05, function()
+        if self.exportFrame:IsShown() then
+            self.exportFrame.editBox:HighlightText(0)
+            self.exportFrame.editBox:SetFocus()
+        end
+    end)
+
+    self:Print("|cff00ccff" .. L.QUICKSIM_COPIED .. "|r")
+    self:Print("|cffffff00" .. L.QUICKSIM_HINT .. "|r")
+
+    -- Open Raidbots in default browser
+    -- WoW can't open URLs directly, but we inform the user
+    self:Print("|cffff8800https://www.raidbots.com/simbot/quick|r")
+end

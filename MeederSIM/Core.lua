@@ -4,7 +4,7 @@
 ----------------------------------------------------------------------
 
 MeederSIM = MeederSIM or {}
-MeederSIM.version = "1.1.1"
+MeederSIM.version = "1.1.2"
 MeederSIM.initialized = false
 
 -- Spec ID → English name (locale-independent)
@@ -181,6 +181,8 @@ SlashCmdList["MEEDERSIM"] = function(msg)
         MeederSIM:ExportBiS()
     elseif cmd == "importbis" then
         MeederSIM:ImportBiS(args)
+    elseif cmd == "quicksim" or cmd == "qs" then
+        MeederSIM:QuickSim()
     elseif cmd == "dumplinks" then
         MeederSIM:DumpItemLinks()
     elseif cmd == "debug" then

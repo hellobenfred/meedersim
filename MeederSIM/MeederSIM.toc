@@ -2,7 +2,7 @@
 ## Title: |cff00ccffMeederSIM|r by IT-Meeder.de
 ## Notes: Sofortiger Item-Vergleich für Raid & M+ | Crest-Upgrade Check | BiS-Erkennung
 ## Author: IT-Meeder.de | Support: Littlepink-Arthas
-## Version: 1.1.1
+## Version: 1.1.2
 ## IconTexture: Interface\Icons\INV_Misc_Gear_01
 ## SavedVariables: MeederSIMDB
 ## SavedVariablesPerCharacter: MeederSIMCharDB

@@ -92,7 +92,7 @@ end
 
 function MeederSIM:CreateHubFrame()
     local f = CreateFrame("Frame", "MeederSIMHubFrame", UIParent, "BackdropTemplate")
-    f:SetSize(360, 480)
+    f:SetSize(360, 530)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -179,38 +179,47 @@ function MeederSIM:CreateHubFrame()
         y = y - 44
     end
 
+    local L = MeederSIM.L
+
     AddMenuButton(
         "Interface\\Icons\\INV_Misc_Gem_Variety_02",
-        "|cff00ff00Best in Slot Übersicht|r",
-        "BiS-Items für Overall, Raid, M+, Persönlich",
+        "|cff00ff00" .. L.HUB_BIS .. "|r",
+        L.HUB_BIS_DESC,
         function() MeederSIM:ShowBiSWindow() end
     )
 
     AddMenuButton(
         "Interface\\Icons\\INV_Misc_Gear_01",
-        "|cffffff00Ausrüstung|r",
-        "Alle angezogenen Items mit iLvl anzeigen",
+        "|cffffff00" .. L.HUB_GEAR .. "|r",
+        L.HUB_GEAR_DESC,
         function() MeederSIM:ShowGearWindow() end
     )
 
     AddMenuButton(
         "Interface\\Icons\\Spell_Holy_MindSooth",
-        "|cff00ccffStat-Gewichtungen|r",
-        "Stat-Prioritäten für deinen Spec (Raid & M+)",
+        "|cff00ccff" .. L.HUB_WEIGHTS .. "|r",
+        L.HUB_WEIGHTS_DESC,
         function() MeederSIM:ShowWeightsWindow() end
     )
 
     AddMenuButton(
         "Interface\\Icons\\INV_Letter_02",
-        "|cffff8800SimC Export|r",
-        "Gear als SimC-String für Raidbots kopieren",
+        "|cffff8800" .. L.HUB_EXPORT .. "|r",
+        L.HUB_EXPORT_DESC,
         function() MeederSIM:ShowExport() end
     )
 
     AddMenuButton(
+        "Interface\\Icons\\Spell_Fire_FelFlameRing",
+        "|cffff3333" .. L.HUB_QUICKSIM .. "|r",
+        L.HUB_QUICKSIM_DESC,
+        function() MeederSIM:QuickSim() end
+    )
+
+    AddMenuButton(
         "Interface\\Icons\\INV_Gizmo_01",
-        "|cffffffffEinstellungen|r",
-        "Tooltip, Benachrichtigungen, BiS konfigurieren",
+        "|cffffffff" .. L.HUB_SETTINGS .. "|r",
+        L.HUB_SETTINGS_DESC,
         function() MeederSIM:OpenSettings() end
     )
 
