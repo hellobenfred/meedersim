@@ -150,6 +150,33 @@ end
 ----------------------------------------------------------------------
 -- Formatting (no more ScoreToPercent - values ARE already percentages)
 ----------------------------------------------------------------------
+----------------------------------------------------------------------
+-- Verdict: Zentrale Bewertung (aufgerufen von Tooltip + Loot + UI)
+----------------------------------------------------------------------
+function MeederSIM:GetVerdict(raidPct, mplusPct)
+    local L = self.L
+    local isUp = raidPct > 1 or mplusPct > 1
+    local isDown = raidPct < -1 and mplusPct < -1
+    local isMixed = (raidPct > 1 and mplusPct < -1) or (raidPct < -1 and mplusPct > 1)
+
+    if isUp and not isMixed then
+        return "upgrade", L.UPGRADE
+    elseif isDown then
+        return "downgrade", L.DOWNGRADE
+    elseif isMixed then
+        return "mixed", L.MIXED
+    else
+        return "neutral", L.NO_CHANGE
+    end
+end
+
+function MeederSIM:GetVerdictColor(verdict)
+    if verdict == "upgrade" then return 0, 1, 0
+    elseif verdict == "downgrade" then return 1, 0.2, 0.2
+    elseif verdict == "mixed" then return 1, 1, 0
+    else return 0.6, 0.6, 0.6 end
+end
+
 function MeederSIM:FormatPercent(pct)
     if pct > 0 then return string.format("|cff00ff00+%.1f|r", pct) .. "%"
     elseif pct < 0 then return string.format("|cffff3333%.1f|r", pct) .. "%"

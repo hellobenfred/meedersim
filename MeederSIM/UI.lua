@@ -656,77 +656,429 @@ function MeederSIM:UpdateBiSFrame()
 end
 
 ----------------------------------------------------------------------
--- Settings Panel
+-- Settings Power-Panel (eigenständiges Fenster mit 4 Tabs)
 ----------------------------------------------------------------------
+function MeederSIM:OpenSettings()
+    if not self.settingsFrame then
+        self:CreateSettingsFrame()
+    end
+    self:UpdateSettingsFrame()
+    self.settingsFrame:Show()
+end
+
+function MeederSIM:CreateSettingsFrame()
+    local L = self.L
+    local f = CreateFrame("Frame", "MeederSIMSettingsFrame", UIParent, "BackdropTemplate")
+    f:SetSize(500, 550)
+    f:SetPoint("CENTER")
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetFrameStrata("DIALOG")
+    f:SetClampedToScreen(true)
+    f:SetBackdrop(BACKDROP)
+
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOP", 0, -12)
+    title:SetText("|cff00ccffMeederSIM|r " .. L.HUB_SETTINGS)
+
+    local info = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    info:SetPoint("TOP", title, "BOTTOM", 0, -2)
+    info:SetText("|cff888888" .. L.BIS_SOURCE .. " | " .. L.SUPPORT .. "|r")
+
+    local closeX = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+    closeX:SetPoint("TOPRIGHT", -2, -2)
+
+    -- 4 TABS
+    f.activeTab = "display"
+    f.tabs = {}
+    f.tabFrames = {}
+
+    local tabDefs = {
+        { key = "display", label = L.SETTINGS_DISPLAY },
+        { key = "gear",    label = L.HUB_GEAR },
+        { key = "weights", label = L.HUB_WEIGHTS },
+        { key = "profile", label = "Profile" },
+    }
+
+    for i, td in ipairs(tabDefs) do
+        local tab = CreateFrame("Button", nil, f)
+        tab:SetSize(110, 22)
+        tab:SetPoint("TOPLEFT", 16 + (i - 1) * 116, -46)
+        tab.bg = tab:CreateTexture(nil, "BACKGROUND")
+        tab.bg:SetAllPoints()
+        tab.text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        tab.text:SetPoint("CENTER")
+        tab.text:SetText(td.label)
+        tab.key = td.key
+        tab:SetScript("OnClick", function()
+            f.activeTab = td.key
+            MeederSIM:UpdateSettingsTabs()
+        end)
+        f.tabs[i] = tab
+
+        -- Content frame per tab
+        local content = CreateFrame("Frame", nil, f)
+        content:SetPoint("TOPLEFT", 12, -72)
+        content:SetPoint("BOTTOMRIGHT", -12, 40)
+        content:Hide()
+        f.tabFrames[td.key] = content
+    end
+
+    -- TAB 1: Display (Checkboxen)
+    self:BuildDisplayTab(f.tabFrames["display"])
+
+    -- TAB 2: Gear
+    self:BuildGearTab(f.tabFrames["gear"])
+
+    -- TAB 3: Weights
+    self:BuildWeightsTab(f.tabFrames["weights"])
+
+    -- TAB 4: Profile
+    self:BuildProfileTab(f.tabFrames["profile"])
+
+    -- Close button
+    local closeBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    closeBtn:SetSize(80, 22)
+    closeBtn:SetPoint("BOTTOMRIGHT", -12, 10)
+    closeBtn:SetText("OK")
+    closeBtn:SetScript("OnClick", function() f:Hide() end)
+
+    table.insert(UISpecialFrames, "MeederSIMSettingsFrame")
+    f:Hide()
+    self.settingsFrame = f
+
+    -- Auch in Blizzard Options registrieren (Shortcut)
+    self:CreateSettingsPanel()
+end
+
+-- Blizzard Interface Options (minimaler Eintrag, verweist auf unser Fenster)
 function MeederSIM:CreateSettingsPanel()
     local panel = CreateFrame("Frame", "MeederSIMSettingsPanel")
     panel.name = "MeederSIM"
-
-    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("|cff00ccffMeederSIM|r by IT-Meeder.de v" .. self.version)
-
-    local support = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    support:SetPoint("TOPLEFT", 16, -34)
-    support:SetText("|cff888888BiS-Daten: Icy Veins (Stand: 10.04.2026, Patch 12.0.4) | Support: Littlepink-Arthas|r")
-
-    local y = -50
-
-    local function AddCategory(text)
-        y = y - 8
-        local cat = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        cat:SetPoint("TOPLEFT", 16, y)
-        cat:SetText("|cffffff00" .. text .. "|r")
-        y = y - 22
-    end
-
-    local function AddCheckbox(key, label)
-        local cb = CreateFrame("CheckButton", "MeederSIMCB_" .. key, panel)
-        cb:SetSize(24, 24)
-        cb:SetPoint("TOPLEFT", 20, y)
-        cb:SetNormalTexture("Interface\\Buttons\\UI-CheckBox-Up")
-        cb:SetPushedTexture("Interface\\Buttons\\UI-CheckBox-Down")
-        cb:SetHighlightTexture("Interface\\Buttons\\UI-CheckBox-Highlight", "ADD")
-        cb:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
-
-        local text = cb:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        text:SetPoint("LEFT", cb, "RIGHT", 4, 0)
-        text:SetText(label)
-
-        cb:SetChecked(MeederSIMDB.settings[key])
-        cb:SetScript("OnClick", function(s) MeederSIMDB.settings[key] = s:GetChecked() end)
-        y = y - 26
-    end
-
-    AddCategory("Anzeige")
-    AddCheckbox("showTooltip", "Tooltip-Vergleich anzeigen")
-    AddCheckbox("showRaid", "Raid-Bewertung anzeigen")
-    AddCheckbox("showMPlus", "M+-Bewertung anzeigen")
-    AddCheckbox("showStatChanges", "Stat-Änderungen anzeigen")
-    AddCheckbox("showStatPriority", "Stat-Priorität anzeigen")
-    AddCheckbox("showIlvlDiff", "Item-Level Differenz anzeigen")
-
-    AddCategory("Benachrichtigungen")
-    AddCheckbox("showLootPopup", "Loot-Benachrichtigung im Chat")
-    AddCheckbox("onlyUpgrades", "Nur Upgrades melden")
-
-    AddCategory("BiS & Gear")
-    AddCheckbox("showBisOnEquipped", "BiS-Status auf ausgerüsteten Items")
-    AddCheckbox("showEnchantWarning", "Enchant-Warnung auf ausgerüsteten Items")
-    AddCheckbox("showDropSource", "Drop-Quelle im Tooltip anzeigen")
-
+    local text = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    text:SetPoint("CENTER")
+    text:SetText("|cff00ccffMeederSIM|r\n\n|cffffff00/msim config|r oder Minimap-Button\nfür alle Einstellungen")
     if Settings and Settings.RegisterCanvasLayoutCategory then
         local cat = Settings.RegisterCanvasLayoutCategory(panel, "MeederSIM")
         Settings.RegisterAddOnCategory(cat)
         self.settingsCategory = cat
     end
-    self.settingsPanel = panel
 end
 
-function MeederSIM:OpenSettings()
-    if self.settingsCategory then
-        Settings.OpenToCategory(self.settingsCategory:GetID())
-    else
-        self:Print("Einstellungen: Escape > Optionen > Addons > MeederSIM")
+function MeederSIM:UpdateSettingsTabs()
+    local f = self.settingsFrame
+    if not f then return end
+    for _, tab in ipairs(f.tabs) do
+        if tab.key == f.activeTab then
+            tab.bg:SetColorTexture(0, 0.5, 0.8, 0.8)
+            tab.text:SetTextColor(1, 1, 1)
+        else
+            tab.bg:SetColorTexture(0.2, 0.2, 0.2, 0.6)
+            tab.text:SetTextColor(0.6, 0.6, 0.6)
+        end
     end
+    for key, frame in pairs(f.tabFrames) do
+        if key == f.activeTab then frame:Show() else frame:Hide() end
+    end
+    -- Update dynamic tabs
+    if f.activeTab == "gear" then self:UpdateGearTab() end
+    if f.activeTab == "weights" then self:UpdateWeightsTab() end
+end
+
+function MeederSIM:UpdateSettingsFrame()
+    self:UpdateSettingsTabs()
+end
+
+----------------------------------------------------------------------
+-- Tab 1: Display (Checkboxen)
+----------------------------------------------------------------------
+function MeederSIM:BuildDisplayTab(parent)
+    local L = self.L
+    local y = -4
+
+    local function AddCat(text)
+        y = y - 6
+        local c = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        c:SetPoint("TOPLEFT", 4, y)
+        c:SetText("|cffffff00" .. text .. "|r")
+        y = y - 20
+    end
+
+    local function AddCB(key, label)
+        local cb = CreateFrame("CheckButton", nil, parent)
+        cb:SetSize(22, 22)
+        cb:SetPoint("TOPLEFT", 8, y)
+        cb:SetNormalTexture("Interface\\Buttons\\UI-CheckBox-Up")
+        cb:SetPushedTexture("Interface\\Buttons\\UI-CheckBox-Down")
+        cb:SetHighlightTexture("Interface\\Buttons\\UI-CheckBox-Highlight", "ADD")
+        cb:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
+        local t = cb:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        t:SetPoint("LEFT", cb, "RIGHT", 4, 0)
+        t:SetText(label)
+        cb:SetChecked(MeederSIMDB.settings[key])
+        cb:SetScript("OnClick", function(s) MeederSIMDB.settings[key] = s:GetChecked() end)
+        y = y - 24
+    end
+
+    AddCat(L.SETTINGS_DISPLAY)
+    AddCB("showTooltip", L.SETTINGS_SHOW_TOOLTIP)
+    AddCB("showRaid", L.SETTINGS_SHOW_RAID)
+    AddCB("showMPlus", L.SETTINGS_SHOW_MPLUS)
+    AddCB("showStatChanges", L.SETTINGS_SHOW_STATS)
+    AddCB("showStatPriority", L.SETTINGS_SHOW_PRIO)
+    AddCB("showIlvlDiff", L.SETTINGS_SHOW_ILVL)
+
+    AddCat(L.SETTINGS_NOTIFICATIONS)
+    AddCB("showLootPopup", L.SETTINGS_LOOT_POPUP)
+    AddCB("onlyUpgrades", L.SETTINGS_ONLY_UPGRADES)
+
+    AddCat(L.SETTINGS_BIS_GEAR)
+    AddCB("showBisOnEquipped", L.SETTINGS_BIS_EQUIPPED)
+    AddCB("showEnchantWarning", L.SETTINGS_ENCHANT_WARN)
+    AddCB("showDropSource", L.SETTINGS_DROP_SOURCE)
+end
+
+----------------------------------------------------------------------
+-- Tab 2: Gear (visuell, vorher eigenes Fenster)
+----------------------------------------------------------------------
+function MeederSIM:BuildGearTab(parent)
+    parent.rows = {}
+    for i, slotId in ipairs(self.SLOT_ORDER) do
+        local y = -4 - (i - 1) * 26
+        local row = {}
+
+        row.bg = parent:CreateTexture(nil, "BACKGROUND")
+        row.bg:SetPoint("TOPLEFT", 0, y + 2)
+        row.bg:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
+        row.bg:SetHeight(26)
+        row.bg:SetColorTexture(i % 2 == 0 and 0.12 or 0.07, i % 2 == 0 and 0.12 or 0.07, i % 2 == 0 and 0.14 or 0.09, i % 2 == 0 and 0.7 or 0.4)
+
+        row.icon = parent:CreateTexture(nil, "ARTWORK")
+        row.icon:SetSize(22, 22)
+        row.icon:SetPoint("TOPLEFT", 4, y)
+
+        row.slot = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.slot:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+        row.slot:SetWidth(80)
+        row.slot:SetJustifyH("LEFT")
+
+        row.name = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.name:SetPoint("TOPLEFT", 120, y - 1)
+        row.name:SetWidth(250)
+        row.name:SetJustifyH("LEFT")
+
+        row.ilvl = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        row.ilvl:SetPoint("TOPLEFT", 380, y - 1)
+
+        -- Hover
+        local btn = CreateFrame("Button", nil, parent)
+        btn:SetPoint("TOPLEFT", 0, y + 2)
+        btn:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
+        btn:SetHeight(26)
+        btn.slotId = slotId
+        btn:SetScript("OnEnter", function(self)
+            local g = (MeederSIMCharDB.gear or {})[self.slotId]
+            if g and g.link then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetHyperlink(g.link)
+                GameTooltip:Show()
+            end
+        end)
+        btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        row.slotId = slotId
+        parent.rows[i] = row
+    end
+end
+
+function MeederSIM:UpdateGearTab()
+    local parent = self.settingsFrame and self.settingsFrame.tabFrames and self.settingsFrame.tabFrames["gear"]
+    if not parent or not parent.rows then return end
+
+    local gear = MeederSIMCharDB.gear or {}
+    for _, row in ipairs(parent.rows) do
+        local g = gear[row.slotId]
+        row.slot:SetText(self:GetSlotName(row.slotId))
+        if g then
+            local icon = GetItemIcon and GetItemIcon(g.id)
+            if icon then row.icon:SetTexture(icon) else row.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") end
+            local qualityColor = "|cffffffff"
+            if g.quality then
+                local _, _, _, hex = GetItemQualityColor(g.quality)
+                if hex then qualityColor = hex end
+            end
+            local enchTag = ""
+            if self:ShouldBeEnchanted(row.slotId) and (g.enchantId or 0) == 0 then
+                enchTag = " |cffff3333[!E]|r"
+            end
+            row.name:SetText(qualityColor .. (g.name or "?") .. "|r" .. enchTag)
+            row.ilvl:SetText("|cffffff00" .. (g.ilvl or 0) .. "|r")
+        else
+            row.icon:SetTexture("Interface\\PaperDoll\\UI-Backpack-EmptySlot")
+            row.name:SetText("|cff555555-|r")
+            row.ilvl:SetText("")
+        end
+    end
+end
+
+----------------------------------------------------------------------
+-- Tab 3: Weights (visuell, vorher eigenes Fenster)
+----------------------------------------------------------------------
+function MeederSIM:BuildWeightsTab(parent)
+    parent.specInfo = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    parent.specInfo:SetPoint("TOPLEFT", 4, -4)
+
+    local hdr1 = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hdr1:SetPoint("TOPLEFT", 4, -28)
+    hdr1:SetText("|cff666666Stat|r")
+
+    local hdr2 = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hdr2:SetPoint("TOPLEFT", 140, -28)
+    hdr2:SetText("|cff666666" .. self.L.RAID .. "|r")
+
+    local hdr3 = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hdr3:SetPoint("TOPLEFT", 250, -28)
+    hdr3:SetText("|cff666666" .. self.L.MPLUS .. "|r")
+
+    parent.statRows = {}
+end
+
+function MeederSIM:UpdateWeightsTab()
+    local parent = self.settingsFrame and self.settingsFrame.tabFrames and self.settingsFrame.tabFrames["weights"]
+    if not parent then return end
+
+    parent.specInfo:SetText("|cffffff00" .. (self.spec or "?") .. " " .. (self.class or "?") .. "|r")
+
+    for _, row in ipairs(parent.statRows) do
+        if row.name then row.name:Hide() end
+        if row.raidVal then row.raidVal:Hide() end
+        if row.mplusVal then row.mplusVal:Hide() end
+        if row.bar then row.bar:Hide() end
+    end
+    parent.statRows = {}
+
+    local weights = self:GetWeights()
+    if not weights then return end
+
+    local DISPLAY = {
+        crit="Crit",haste="Haste",mastery="Mastery",versatility="Vers",
+        strength="Strength",agility="Agility",intellect="Intellect",
+    }
+
+    local stats = {}
+    local raidW = weights.raid or {}
+    local mplusW = weights.mythicplus or weights.raid or {}
+    for stat, val in pairs(raidW) do
+        if DISPLAY[stat] then
+            stats[#stats + 1] = { stat = stat, display = DISPLAY[stat], raid = val, mplus = mplusW[stat] or 0 }
+        end
+    end
+    table.sort(stats, function(a, b) return a.raid > b.raid end)
+
+    local y = -42
+    for i, s in ipairs(stats) do
+        local row = {}
+
+        row.bar = parent:CreateTexture(nil, "BACKGROUND")
+        row.bar:SetPoint("TOPLEFT", 0, y + 1)
+        row.bar:SetHeight(18)
+        row.bar:SetWidth(math.max(1, s.raid * 350))
+        local r, g = 0.1, 0.3
+        if i == 1 then r, g = 0.0, 0.5 elseif i == 2 then r, g = 0.0, 0.4 end
+        row.bar:SetColorTexture(r, g, 0.6, 0.3)
+
+        row.name = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row.name:SetPoint("TOPLEFT", 4, y)
+        row.name:SetWidth(130)
+        row.name:SetJustifyH("LEFT")
+        local color = i == 1 and "|cff00ff00" or (i == 2 and "|cffffff00" or "|cffffffff")
+        row.name:SetText(color .. s.display .. (i == 1 and " " .. self.L.BEST_STAT or "") .. "|r")
+
+        row.raidVal = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row.raidVal:SetPoint("TOPLEFT", 140, y)
+        row.raidVal:SetText(string.format("%.2f", s.raid))
+
+        row.mplusVal = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row.mplusVal:SetPoint("TOPLEFT", 250, y)
+        row.mplusVal:SetText(string.format("%.2f", s.mplus))
+
+        parent.statRows[i] = row
+        y = y - 20
+    end
+end
+
+----------------------------------------------------------------------
+-- Tab 4: Profile & Export
+----------------------------------------------------------------------
+function MeederSIM:BuildProfileTab(parent)
+    local L = self.L
+    local y = -4
+
+    local bisExportBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    bisExportBtn:SetSize(180, 24)
+    bisExportBtn:SetPoint("TOPLEFT", 4, y)
+    bisExportBtn:SetText("BiS Export String")
+    bisExportBtn:SetScript("OnClick", function() MeederSIM:ExportBiS() end)
+    y = y - 30
+
+    local bisImportLbl = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    bisImportLbl:SetPoint("TOPLEFT", 4, y)
+    bisImportLbl:SetText("|cffffff00BiS Import:|r /msim importbis <string>")
+    y = y - 20
+
+    local bisClearBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    bisClearBtn:SetSize(180, 24)
+    bisClearBtn:SetPoint("TOPLEFT", 4, y)
+    bisClearBtn:SetText("BiS auf Defaults zurücksetzen")
+    bisClearBtn:SetScript("OnClick", function()
+        MeederSIM:ClearBiS()
+    end)
+    y = y - 40
+
+    local sep = parent:CreateTexture(nil, "ARTWORK")
+    sep:SetHeight(1)
+    sep:SetPoint("TOPLEFT", 0, y)
+    sep:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
+    sep:SetColorTexture(0.3, 0.3, 0.3, 1)
+    y = y - 14
+
+    local simcLbl = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    simcLbl:SetPoint("TOPLEFT", 4, y)
+    simcLbl:SetText("|cffffff00SimC Export:|r")
+    y = y - 18
+
+    local simcBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    simcBtn:SetSize(180, 24)
+    simcBtn:SetPoint("TOPLEFT", 4, y)
+    simcBtn:SetText(L.HUB_EXPORT)
+    simcBtn:SetScript("OnClick", function() MeederSIM:ShowExport() end)
+    y = y - 30
+
+    local qsBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    qsBtn:SetSize(180, 24)
+    qsBtn:SetPoint("TOPLEFT", 4, y)
+    qsBtn:SetText(L.HUB_QUICKSIM)
+    qsBtn:SetScript("OnClick", function() MeederSIM:QuickSim() end)
+    y = y - 40
+
+    local sep2 = parent:CreateTexture(nil, "ARTWORK")
+    sep2:SetHeight(1)
+    sep2:SetPoint("TOPLEFT", 0, y)
+    sep2:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
+    sep2:SetColorTexture(0.3, 0.3, 0.3, 1)
+    y = y - 14
+
+    local aboutLbl = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    aboutLbl:SetPoint("TOPLEFT", 4, y)
+    aboutLbl:SetText(
+        "|cff00ccffMeederSIM|r v" .. MeederSIM.version .. " " .. L.BY .. "\n" ..
+        L.SUPPORT .. "\n" ..
+        L.BIS_SOURCE .. "\n\n" ..
+        "|cff888888GitHub: github.com/hellobenfred/MeederSIM\n" ..
+        "Wago: addons.wago.io/addons/L6J9L2Nv\n" ..
+        "CurseForge: curseforge.com/wow/addons/meedersim|r"
+    )
 end

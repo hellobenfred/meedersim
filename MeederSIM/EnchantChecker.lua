@@ -110,3 +110,127 @@ function MeederSIM:PrintEnchantAudit()
         self:Print("|cffffff00" .. #audit.enchanted .. "/" .. audit.total .. " Slots verzaubert|r")
     end
 end
+
+----------------------------------------------------------------------
+-- Check if an item has empty gem sockets
+----------------------------------------------------------------------
+function MeederSIM:HasEmptySocket(slotId)
+    local gear = MeederSIMCharDB.gear or {}
+    local g = gear[slotId]
+    if not g or not g.link then return false end
+
+    -- Check via C_TooltipInfo if available (safe, no SetHyperlink)
+    if C_TooltipInfo and C_TooltipInfo.GetInventoryItem then
+        local ok, data = pcall(C_TooltipInfo.GetInventoryItem, "player", slotId)
+        if ok and data and data.lines then
+            for _, line in ipairs(data.lines) do
+                local text = line.leftText or ""
+                -- Empty socket lines contain socket type text without a gem name
+                if text:match("Empty Socket") or text:match("Leerer Sockel") or
+                   text:match("Prismatic Socket") or text:match("Prismatischer Sockel") then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
+----------------------------------------------------------------------
+-- Character Frame Overlay: Show warnings on equipped items
+----------------------------------------------------------------------
+local charOverlays = {}
+
+-- WoW Character Frame slot button names (Retail)
+local CHAR_SLOT_BUTTONS = {
+    [1]  = "CharacterHeadSlot",
+    [2]  = "CharacterNeckSlot",
+    [3]  = "CharacterShoulderSlot",
+    [15] = "CharacterBackSlot",
+    [5]  = "CharacterChestSlot",
+    [9]  = "CharacterWristSlot",
+    [10] = "CharacterHandsSlot",
+    [6]  = "CharacterWaistSlot",
+    [7]  = "CharacterLegsSlot",
+    [8]  = "CharacterFeetSlot",
+    [11] = "CharacterFinger0Slot",
+    [12] = "CharacterFinger1Slot",
+    [13] = "CharacterTrinket0Slot",
+    [14] = "CharacterTrinket1Slot",
+    [16] = "CharacterMainHandSlot",
+    [17] = "CharacterSecondaryHandSlot",
+}
+
+function MeederSIM:InitCharOverlay()
+    -- Hook character frame show
+    if CharacterFrame then
+        CharacterFrame:HookScript("OnShow", function()
+            C_Timer.After(0.2, function() MeederSIM:UpdateCharOverlays() end)
+        end)
+    end
+
+    -- Also update on gear change
+    local f = CreateFrame("Frame")
+    f:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+    f:SetScript("OnEvent", function()
+        if CharacterFrame and CharacterFrame:IsShown() then
+            C_Timer.After(0.3, function() MeederSIM:UpdateCharOverlays() end)
+        end
+    end)
+end
+
+function MeederSIM:UpdateCharOverlays()
+    if not self.initialized then return end
+
+    for slotId, btnName in pairs(CHAR_SLOT_BUTTONS) do
+        local button = _G[btnName]
+        if button then
+            -- Get or create overlay
+            if not charOverlays[slotId] then
+                local ov = CreateFrame("Frame", nil, button)
+                ov:SetAllPoints()
+                ov:SetFrameLevel(button:GetFrameLevel() + 3)
+
+                ov.enchant = ov:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                ov.enchant:SetPoint("BOTTOMRIGHT", -1, 1)
+                ov.enchant:SetText("")
+
+                ov.socket = ov:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                ov.socket:SetPoint("BOTTOMLEFT", 1, 1)
+                ov.socket:SetText("")
+
+                ov.bis = ov:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                ov.bis:SetPoint("TOPRIGHT", -1, -1)
+                ov.bis:SetText("")
+
+                charOverlays[slotId] = ov
+            end
+
+            local ov = charOverlays[slotId]
+
+            -- Enchant check
+            if self:ShouldBeEnchanted(slotId) and not self:IsEnchanted(slotId) then
+                ov.enchant:SetText("|cffff3333[!E]|r")
+            else
+                ov.enchant:SetText("")
+            end
+
+            -- Socket check
+            if self:HasEmptySocket(slotId) then
+                ov.socket:SetText("|cffff8800[S]|r")
+            else
+                ov.socket:SetText("")
+            end
+
+            -- BiS check
+            local gear = MeederSIMCharDB.gear or {}
+            local g = gear[slotId]
+            if g and g.id and self:IsItemBiS(g.id, slotId) then
+                ov.bis:SetText("|cff00ff00BiS|r")
+            else
+                ov.bis:SetText("")
+            end
+        end
+    end
+end

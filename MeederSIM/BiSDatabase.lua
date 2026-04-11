@@ -236,7 +236,10 @@ function MeederSIM:InitBiS()
             MeederSIMCharDB.bisProfiles[key] = {}
         end
     end
-    if not MeederSIMCharDB.bisLoaded3 and self.class and self.spec then
+    -- Flag pro Klasse+Spec (damit Spec-Wechsel neue Daten lädt)
+    local specKey = (self.class or "") .. "_" .. (self.spec or "")
+    local initialized = MeederSIMCharDB.bisInitFor and MeederSIMCharDB.bisInitFor[specKey]
+    if not initialized and self.class and self.spec then
         for _, key in ipairs({"overall", "raid", "mplus"}) do
             local defs = PROFILE_DEFAULTS[key]
             if defs then
@@ -253,7 +256,8 @@ function MeederSIM:InitBiS()
                 end
             end
         end
-        MeederSIMCharDB.bisLoaded3 = true
+        if not MeederSIMCharDB.bisInitFor then MeederSIMCharDB.bisInitFor = {} end
+        MeederSIMCharDB.bisInitFor[specKey] = true
     end
 end
 
@@ -329,12 +333,15 @@ end
 
 function MeederSIM:ClearBiS()
     MeederSIMCharDB.bisProfiles = nil
+    MeederSIMCharDB.bisInitFor = nil
+    MeederSIMCharDB.bisInitialized = nil
+    -- Alte Flags bereinigen
     MeederSIMCharDB.bisLoaded = nil
     MeederSIMCharDB.bisLoaded2 = nil
     MeederSIMCharDB.bisLoaded3 = nil
     MeederSIMCharDB.bisMigrated = nil
     MeederSIMCharDB.bis = nil
-    self:Print("BiS komplett gelöscht. /reload für neue Defaults.")
+    self:Print(self.L.BIS_CLEARED)
 end
 
 function MeederSIM:ExportBiS()

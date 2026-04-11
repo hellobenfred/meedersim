@@ -67,18 +67,13 @@ function MeederSIM:ShowLootResult(link)
     local mplusPct = mplusDiff
     local name = GetItemInfo(link) or "?"
 
-    -- Skip downgrades if setting is on
-    local isUpgrade = raidPct > 1 or mplusPct > 1
-    if MeederSIMDB.settings.onlyUpgrades and not isUpgrade then return end
+    -- Zentrale Verdict-Funktion
+    local verdictType, verdictText = self:GetVerdict(raidPct, mplusPct)
 
-    local verdict
-    if isUpgrade then
-        verdict = "|cff00ff00[+] UPGRADE|r"
-    elseif raidPct < -1 and mplusPct < -1 then
-        verdict = "|cffff3333[-] DOWNGRADE|r"
-    else
-        verdict = "|cffffff00[=] Seitwärts|r"
-    end
+    -- Skip downgrades if setting is on
+    if MeederSIMDB.settings.onlyUpgrades and verdictType ~= "upgrade" then return end
+
+    local verdict = verdictText
 
     self:Print(verdict .. " " .. link)
     self:Print("  Raid: " .. self:FormatPercent(raidPct) .. "  M+: " .. self:FormatPercent(mplusPct))
@@ -87,7 +82,8 @@ function MeederSIM:ShowLootResult(link)
     local otherSpecs = self:CompareOtherSpecs(link, details)
     if otherSpecs then
         for _, os in ipairs(otherSpecs) do
-            if os.raidPct > 1 or os.mplusPct > 1 then
+            local osVerdict = self:GetVerdict(os.raidPct, os.mplusPct)
+            if osVerdict == "upgrade" then
                 self:Print("  |cff00ff00[+] Gut für " .. os.spec .. "|r")
             end
         end
@@ -97,7 +93,7 @@ function MeederSIM:ShowLootResult(link)
     if details.new then
         local crest = self:GetCrestInfo(link, details.new.ilvl)
         if crest and crest.canUpgrade then
-            self:Print("  Aufwertbar: " .. crest.name .. " Dawncrest (" ..
+            self:Print("  Aufwertbar: " .. (crest.currName or crest.trackName or "?") .. " (" ..
                 crest.rank .. "/" .. crest.maxRank .. ", " .. crest.crestsNeeded .. " Crests)")
         end
     end

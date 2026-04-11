@@ -149,20 +149,10 @@ function MeederSIM:OnTooltip(tooltip)
     tooltip:AddLine(" ")
     tooltip:AddLine(HEADER, 0, 0.8, 1)
 
-    -- VERDICT (threshold 1% for meaningful difference)
-    local isUp = raidPct > 1 or mplusPct > 1
-    local isDown = raidPct < -1 and mplusPct < -1
-    local isMixed = (raidPct > 1 and mplusPct < -1) or (raidPct < -1 and mplusPct > 1)
-
-    if isUp and not isMixed then
-        tooltip:AddLine("[+] UPGRADE für " .. self.spec, 0, 1, 0)
-    elseif isDown then
-        tooltip:AddLine("[-] DOWNGRADE für " .. self.spec, 1, 0.2, 0.2)
-    elseif isMixed then
-        tooltip:AddLine("[~] Gemischt für " .. self.spec, 1, 1, 0)
-    else
-        tooltip:AddLine("[=] Kein Unterschied für " .. self.spec, 0.6, 0.6, 0.6)
-    end
+    -- VERDICT (zentrale Funktion)
+    local verdict, verdictText = self:GetVerdict(raidPct, mplusPct)
+    local vr, vg, vb = self:GetVerdictColor(verdict)
+    tooltip:AddLine(verdictText .. " " .. self.spec, vr, vg, vb)
 
     -- Raid + M+
     tooltip:AddDoubleLine(
@@ -267,8 +257,8 @@ function MeederSIM:OnTooltip(tooltip)
         end
     end
 
-    -- CREST INFO (nur bei Upgrades - bei Downgrades irrelevant)
-    local isAnyUpgrade = raidPct > 1 or mplusPct > 1
+    -- CREST INFO (nur bei Upgrades)
+    local isAnyUpgrade = verdict == "upgrade" or verdict == "mixed"
     if isAnyUpgrade and details.new then
         local crestInfo = self:GetCrestInfo(link, details.new.ilvl)
         if crestInfo and crestInfo.canUpgrade then

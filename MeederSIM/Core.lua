@@ -4,7 +4,27 @@
 ----------------------------------------------------------------------
 
 MeederSIM = MeederSIM or {}
-MeederSIM.version = "1.1.2"
+MeederSIM.version = "1.2.0"
+
+-- Zentrale Slot-Konstanten (Single Source of Truth)
+MeederSIM.SLOT_NAMES_EN = {
+    [1]="Head",[2]="Neck",[3]="Shoulder",[15]="Back",[5]="Chest",
+    [9]="Wrist",[10]="Hands",[6]="Waist",[7]="Legs",[8]="Feet",
+    [11]="Ring 1",[12]="Ring 2",[13]="Trinket 1",[14]="Trinket 2",
+    [16]="Main Hand",[17]="Off Hand",
+}
+MeederSIM.SLOT_NAMES_DE = {
+    [1]="Kopf",[2]="Hals",[3]="Schulter",[15]="Rücken",[5]="Brust",
+    [9]="Handgelenke",[10]="Hände",[6]="Taille",[7]="Beine",[8]="Füße",
+    [11]="Ring 1",[12]="Ring 2",[13]="Schmuck 1",[14]="Schmuck 2",
+    [16]="Haupthand",[17]="Nebenhand",
+}
+MeederSIM.SLOT_ORDER = {1,2,3,15,5,9,10,6,7,8,11,12,13,14,16,17}
+
+function MeederSIM:GetSlotName(slotId)
+    local names = GetLocale() == "deDE" and self.SLOT_NAMES_DE or self.SLOT_NAMES_EN
+    return names[slotId] or ("Slot " .. slotId)
+end
 MeederSIM.initialized = false
 
 -- Spec ID → English name (locale-independent)
@@ -76,6 +96,8 @@ function MeederSIM:OnLogin()
         self:CollectGear()
         self:InitBiS()
         self:CreateMinimapButton()
+        self:InitBagOverlay()
+        self:InitCharOverlay()
 
         -- Willkommen beim ersten Start
         if not MeederSIMDB.welcomed then
